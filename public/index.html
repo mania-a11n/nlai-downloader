@@ -3,201 +3,136 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نمایشگر و دانلودر اسناد کتابخانه ملی (NLAI)</title>
+  <title>استخراج‌کننده صفحات کتابخانه ملی</title>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { background: #f1f5f9; margin: 0; padding: 16px; color: #1e293b; }
+    body { background: #f8fafc; margin: 0; padding: 16px; color: #0f172a; }
     .container { max-width: 900px; margin: 0 auto; }
-    .card { background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); margin-bottom: 20px; }
-    h2 { margin-top: 0; text-align: center; color: #0f172a; font-size: 20px; }
-    p { font-size: 13px; color: #64748b; text-align: center; margin-bottom: 16px; }
     
-    .input-group { display: flex; gap: 8px; }
-    input[type="text"] { flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; text-align: left; dir: ltr; }
-    .btn-main { padding: 12px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; white-space: nowrap; }
-    .btn-main:disabled { background: #94a3b8; }
-
-    /* شبکه کارت‌های صفحات */
-    .grid-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; }
-    .grid-title { font-size: 15px; font-weight: bold; color: #334155; }
-    .page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+    .header-card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; text-align: center; }
+    h2 { margin-top: 0; color: #1e293b; font-size: 22px; }
+    p { font-size: 14px; color: #64748b; margin-bottom: 20px; }
     
-    .page-card { background: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
-    .page-card:hover { border-color: #2563eb; background: #eff6ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.12); }
-    .page-icon { font-size: 24px; color: #2563eb; }
-    .page-num { font-size: 13px; font-weight: bold; color: #1e293b; }
-
-    /* پنجره شناور (Modal) */
-    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.85); z-index: 1000; padding: 16px; overflow-y: auto; backdrop-filter: blur(4px); }
-    .modal-content { max-width: 750px; margin: 10px auto; background: #fff; border-radius: 16px; padding: 16px; position: relative; }
-    .close-btn { position: absolute; top: 12px; left: 16px; background: #ef4444; color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
-
-    .nav-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-top: 28px; margin-bottom: 12px; }
-    .nav-btn { padding: 8px 14px; background: #0f172a; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
-    .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
-
-    .modal-image-container { position: relative; text-align: center; min-height: 280px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
-    .modal-image-container img { max-width: 100%; height: auto; border-radius: 6px; display: block; }
+    .input-wrapper { display: flex; gap: 10px; max-width: 600px; margin: 0 auto; }
+    input[type="text"] { flex: 1; padding: 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; text-align: left; dir: ltr; transition: border-color 0.2s; outline: none; }
+    input[type="text"]:focus { border-color: #3b82f6; }
     
-    .spinner { display: none; position: absolute; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .btn-main { padding: 14px 24px; background: #3b82f6; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; white-space: nowrap; transition: background 0.2s; }
+    .btn-main:hover { background: #2563eb; }
+    .btn-main:disabled { background: #94a3b8; cursor: not-allowed; }
 
-    .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
-    .dl-btn { padding: 10px 18px; background: #059669; color: #fff; text-decoration: none; border-radius: 8px; font-size: 13px; font-weight: bold; }
-    .open-btn { padding: 10px 18px; background: #0284c7; color: #fff; text-decoration: none; border-radius: 8px; font-size: 13px; font-weight: bold; }
-    .error { color: #dc2626; font-size: 13px; text-align: center; margin-top: 10px; }
+    /* شبکه صفحات */
+    .grid-section { display: none; background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .grid-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+    .grid-title { font-size: 16px; font-weight: bold; color: #334155; }
+    
+    .page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+    
+    .page-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 10px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s ease; }
+    .page-card:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); }
+    
+    .page-icon { font-size: 28px; margin-bottom: 8px; filter: grayscale(1); transition: filter 0.2s; }
+    .page-card:hover .page-icon { filter: grayscale(0); }
+    
+    .page-num { font-size: 14px; font-weight: 700; color: #334155; }
+    .page-action { font-size: 11px; color: #3b82f6; margin-top: 6px; opacity: 0; transition: opacity 0.2s; font-weight: bold; }
+    .page-card:hover .page-action { opacity: 1; }
+
+    .error { color: #ef4444; font-size: 14px; text-align: center; margin-top: 16px; padding: 10px; background: #fef2f2; border-radius: 8px; display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="card">
-      <h2>استخراج و نمایش اسناد کتابخانه ملی</h2>
-      <p>لینک صفحه سند را وارد کنید تا لیست صفحات بارگذاری شود</p>
+    <div class="header-card">
+      <h2>استخراج‌کننده لینک مستقیم اسناد</h2>
+      <p>لینک سند کتابخانه ملی را وارد کنید تا لینک کیفیت اصلی تمام صفحات ساخته شود</p>
       
-      <div class="input-group">
+      <div class="input-wrapper">
         <input type="text" id="urlInput" placeholder="https://dl.nlai.ir/UI/Controls/ImageForm.aspx?ID=..." />
-        <button class="btn-main" id="fetchBtn" onclick="initDocument()">بارگذاری سند</button>
+        <button class="btn-main" id="fetchBtn" onclick="processDocument()">ساخت لیست صفحات</button>
       </div>
 
-      <div id="status"></div>
+      <div id="errorBox" class="error"></div>
     </div>
 
-    <!-- بخش کارت‌های صفحات -->
-    <div id="gallerySection" style="display:none;">
+    <div id="gridSection" class="grid-section">
       <div class="grid-header">
-        <span class="grid-title">صفحات سند (<span id="totalCountSpan">0</span> صفحه)</span>
+        <span class="grid-title">تعداد کل صفحات شناسایی‌شده: <span id="totalCount" style="color:#3b82f6;font-size:18px;">0</span></span>
       </div>
       <div class="page-grid" id="pageGrid"></div>
     </div>
   </div>
 
-  <!-- پنجره نمایش تصویر اصلی -->
-  <div class="modal" id="imageModal">
-    <div class="modal-content">
-      <button class="close-btn" onclick="closeModal()">✕</button>
-      
-      <div class="nav-bar">
-        <button class="nav-btn" id="prevBtn" onclick="changePage(-1)">◀ قبلی</button>
-        <span style="font-weight:bold; font-size:14px;" id="pageIndicator">صفحه ۱ از ۱</span>
-        <button class="nav-btn" id="nextBtn" onclick="changePage(1)">بعدی ▶</button>
-      </div>
-
-      <div class="modal-image-container">
-        <div class="spinner" id="modalSpinner"></div>
-        <img id="fullImage" src="" alt="صفحه سند" onload="onImageLoaded()" onerror="onImageError()" />
-      </div>
-
-      <div class="btn-group">
-        <a id="openTabBtn" href="#" target="_blank" rel="noopener noreferrer" class="open-btn">🔗 باز کردن در تب جدید (اندازه اصلی)</a>
-        <a id="downloadLink" href="#" download="nlai-page.jpg" class="dl-btn">⬇ دانلود مستقیم تصویر</a>
-      </div>
-    </div>
-  </div>
-
   <script>
-    let currentInputUrl = '';
-    let currentPn = 1;
-    let totalPages = 1;
-
-    async function initDocument() {
-      const input = document.getElementById('urlInput').value.trim();
-      const statusDiv = document.getElementById('status');
+    async function processDocument() {
+      const inputUrl = document.getElementById('urlInput').value.trim();
+      const errorBox = document.getElementById('errorBox');
       const fetchBtn = document.getElementById('fetchBtn');
-      const gallerySection = document.getElementById('gallerySection');
+      const gridSection = document.getElementById('gridSection');
       const pageGrid = document.getElementById('pageGrid');
 
-      if (!input) {
-        statusDiv.innerHTML = '<p class="error">لطفاً لینک را وارد کنید</p>';
+      if (!inputUrl) {
+        showError('لطفاً لینک را در کادر وارد کنید.');
         return;
       }
 
-      currentInputUrl = input;
+      // Reset UI
+      errorBox.style.display = 'none';
       fetchBtn.disabled = true;
-      fetchBtn.innerText = 'در حال استخراج...';
-      statusDiv.innerHTML = '';
-      gallerySection.style.display = 'none';
+      fetchBtn.innerText = 'در حال جستجوی صفحات...';
+      gridSection.style.display = 'none';
       pageGrid.innerHTML = '';
 
       try {
-        const infoUrl = `/.netlify/functions/download?action=info&url=${encodeURIComponent(currentInputUrl)}`;
-        const res = await fetch(infoUrl);
-        const data = await res.json();
-        
-        totalPages = data.totalPages || 1;
-        document.getElementById('totalCountSpan').innerText = totalPages;
+        const apiUrl = `/.netlify/functions/download?url=${encodeURIComponent(inputUrl)}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-        for (let i = 1; i <= totalPages; i++) {
-          const card = document.createElement('div');
+        if (!response.ok || data.error) {
+          throw new Error(data.error || 'خطا در ارتباط با سرور.');
+        }
+
+        const { cid, docId, totalPages, isEstimated } = data;
+        
+        document.getElementById('totalCount').innerText = isEstimated ? `${totalPages} (تخمینی)` : totalPages;
+
+        // ساخت کارت‌ها
+        for (let pn = 1; pn <= totalPages; pn++) {
+          // ساخت لینک نهایی و مستقیم برای باز شدن در سایت کتابخانه ملی
+          let directUrl = `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?cid=${cid}&pn=${pn}`;
+          if (docId) {
+            directUrl += `&id=${docId}&db=false`;
+          }
+
+          const card = document.createElement('a');
           card.className = 'page-card';
-          card.onclick = () => openModal(i);
+          card.href = directUrl;
+          card.target = '_blank'; // باز شدن در تب جدید
+          card.rel = 'noopener noreferrer';
 
           card.innerHTML = `
-            <div class="page-icon">📄</div>
-            <div class="page-num">صفحه ${i}</div>
+            <div class="page-icon">🖼️</div>
+            <div class="page-num">صفحه ${pn}</div>
+            <div class="page-action">مشاهده کیفیت اصلی ↗</div>
           `;
+          
           pageGrid.appendChild(card);
         }
 
-        gallerySection.style.display = 'block';
+        gridSection.style.display = 'block';
 
       } catch (err) {
-        statusDiv.innerHTML = `<p class="error">خطا در دریافت اطلاعات سند: ${err.message}</p>`;
+        showError(err.message);
       } finally {
         fetchBtn.disabled = false;
-        fetchBtn.innerText = 'بارگذاری سند';
+        fetchBtn.innerText = 'ساخت لیست صفحات';
       }
     }
 
-    function openModal(pn) {
-      currentPn = pn;
-      document.getElementById('imageModal').style.display = 'block';
-      document.body.style.overflow = 'hidden';
-      loadFullImage(currentPn);
-    }
-
-    function closeModal() {
-      document.getElementById('imageModal').style.display = 'none';
-      document.body.style.overflow = 'auto';
-    }
-
-    function loadFullImage(pn) {
-      currentPn = pn;
-      const fullImg = document.getElementById('fullImage');
-      const spinner = document.getElementById('modalSpinner');
-      const downloadLink = document.getElementById('downloadLink');
-      const openTabBtn = document.getElementById('openTabBtn');
-
-      document.getElementById('pageIndicator').innerText = `صفحه ${currentPn} از ${totalPages}`;
-      document.getElementById('prevBtn').disabled = (currentPn <= 1);
-      document.getElementById('nextBtn').disabled = (currentPn >= totalPages);
-
-      spinner.style.display = 'block';
-      fullImg.style.opacity = '0.2';
-
-      const imageUrl = `/.netlify/functions/download?url=${encodeURIComponent(currentInputUrl)}&pn=${currentPn}`;
-      fullImg.src = imageUrl;
-      downloadLink.href = imageUrl;
-      downloadLink.download = `nlai-page-${currentPn}.jpg`;
-      
-      // لینک باز کردن مستقیم در تب جدید
-      openTabBtn.href = imageUrl;
-    }
-
-    function changePage(step) {
-      const newPn = currentPn + step;
-      if (newPn >= 1 && newPn <= totalPages) {
-        loadFullImage(newPn);
-      }
-    }
-
-    function onImageLoaded() {
-      document.getElementById('modalSpinner').style.display = 'none';
-      document.getElementById('fullImage').style.opacity = '1';
-    }
-
-    function onImageError() {
-      document.getElementById('modalSpinner').style.display = 'none';
-      document.getElementById('fullImage').style.opacity = '1';
+    function showError(msg) {
+      const err = document.getElementById('errorBox');
+      err.innerText = msg;
+      err.style.display = 'block';
     }
   </script>
 </body>
