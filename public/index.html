@@ -11,14 +11,14 @@
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --text: #1e293b;
-      --border: #e2e8f0;
+      --border: #cbd5e1;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Tahoma, Segoe UI, sans-serif;
+      font-family: Tahoma, 'Segoe UI', sans-serif;
     }
 
     body {
@@ -27,15 +27,14 @@
       padding: 20px;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
       min-height: 100vh;
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      max-width: 850px;
+      margin-top: 20px;
     }
 
     .card {
@@ -43,13 +42,14 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 24px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
-      font-size: 1.25rem;
-      margin-bottom: 16px;
+      font-size: 1.3rem;
+      margin-bottom: 20px;
       text-align: center;
+      color: #0f172a;
     }
 
     .input-group {
@@ -60,8 +60,8 @@
 
     input[type="text"] {
       flex: 1;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border: 2px solid var(--border);
       border-radius: 8px;
       font-size: 0.95rem;
       outline: none;
@@ -76,11 +76,11 @@
       background-color: var(--primary);
       color: white;
       border: none;
-      padding: 10px 18px;
+      padding: 12px 20px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 500;
+      font-size: 0.95rem;
+      font-weight: bold;
       transition: background 0.2s;
     }
 
@@ -89,7 +89,7 @@
     }
 
     button:disabled {
-      background-color: #cbd5e1;
+      background-color: #94a3b8;
       cursor: not-allowed;
     }
 
@@ -107,9 +107,9 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-top: 15px;
+      margin-top: 20px;
       padding-top: 15px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid #e2e8f0;
     }
 
     .nav-buttons {
@@ -118,4 +118,158 @@
       align-items: center;
     }
 
-    .page
+    .page-indicator {
+      font-weight: bold;
+      padding: 0 10px;
+      min-width: 90px;
+      text-align: center;
+    }
+
+    .image-container {
+      text-align: center;
+      margin-top: 20px;
+      background: #f1f5f9;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 350px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    .error {
+      color: #dc2626;
+      font-size: 0.9rem;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .link-info {
+      font-size: 0.8rem;
+      color: #64748b;
+      word-break: break-all;
+      margin-top: 12px;
+      text-align: center;
+      direction: ltr;
+    }
+
+    .link-info a {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="card">
+      <h1>نمایشگر اسناد کتابخانه ملی</h1>
+
+      <!-- کادر ورود لینک -->
+      <div class="input-group">
+        <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا وارد کنید..." />
+        <button id="loadBtn">بارگذاری</button>
+      </div>
+      <div id="errorMsg" class="error"></div>
+
+      <!-- بخش نمایش عکس و دکمه‌ها (در ابتدا مخفی است) -->
+      <div id="viewerSection" style="display: none;">
+        <div class="controls">
+          <div class="nav-buttons">
+            <button id="prevBtn">صفحه قبلی (Back)</button>
+            <span class="page-indicator">صفحه <span id="pageDisplay">1</span></span>
+            <button id="nextBtn">صفحه بعدی (Next)</button>
+          </div>
+          <button id="openTabBtn" class="btn-secondary">باز کردن عکس در تب جدید ↗</button>
+        </div>
+
+        <div class="image-container">
+          <img id="docImage" src="" alt="در حال بارگذاری..." />
+        </div>
+
+        <div class="link-info" id="directLink"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentId = '';
+    let currentPage = 1;
+
+    function extractId(url) {
+      try {
+        const urlObj = new URL(url.trim());
+        const params = new URLSearchParams(urlObj.search);
+        return params.get('ID') || params.get('id') || params.get('cid');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function buildImageUrl(id, page) {
+      return `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=${id}&db=false&pn=${page}&cid=${id}`;
+    }
+
+    function loadDocument() {
+      const input = document.getElementById('urlInput').value;
+      const errorDiv = document.getElementById('errorMsg');
+      errorDiv.innerText = '';
+
+      const extractedId = extractId(input);
+      if (!extractedId) {
+        errorDiv.innerText = 'خطا: شناسه (ID) از لینک وارد شده استخراج نشد. لطفاً آدرس را بررسی کنید.';
+        return;
+      }
+
+      currentId = extractedId;
+      currentPage = 1;
+      updateViewer();
+      document.getElementById('viewerSection').style.display = 'block';
+    }
+
+    function changePage(delta) {
+      if (currentPage + delta < 1) return;
+      currentPage += delta;
+      updateViewer();
+    }
+
+    function updateViewer() {
+      const imgUrl = buildImageUrl(currentId, currentPage);
+      const imgElem = document.getElementById('docImage');
+      const pageDisp = document.getElementById('pageDisplay');
+      const prevBtn = document.getElementById('prevBtn');
+      const directLink = document.getElementById('directLink');
+
+      imgElem.src = imgUrl;
+      pageDisp.innerText = currentPage;
+      prevBtn.disabled = currentPage <= 1;
+      directLink.innerHTML = `آدرس تصویر: <a href="${imgUrl}" target="_blank" rel="noopener noreferrer">${imgUrl}</a>`;
+    }
+
+    function openInNewTab() {
+      if (!currentId) return;
+      const imgUrl = buildImageUrl(currentId, currentPage);
+      window.open(imgUrl, '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loadBtn').addEventListener('click', loadDocument);
+      document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
+      document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
+      document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
+
+      document.getElementById('urlInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') loadDocument();
+      });
+    });
+  </script>
+
+</body>
+</html>
