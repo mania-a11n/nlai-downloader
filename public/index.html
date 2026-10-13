@@ -60,12 +60,10 @@
       display: flex;
       gap: 8px;
       margin-bottom: 12px;
-      flex-wrap: wrap;
     }
 
     input[type="text"] {
       flex: 1;
-      min-width: 280px;
       padding: 12px 14px;
       border: 2px solid var(--border);
       border-radius: 8px;
@@ -89,26 +87,14 @@
       transition: background 0.2s;
     }
 
-    .btn-primary {
-      background-color: var(--primary);
-    }
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-    }
+    .btn-primary { background-color: var(--primary); }
+    .btn-primary:hover { background-color: var(--primary-hover); }
 
-    .btn-info {
-      background-color: var(--purple);
-    }
-    .btn-info:hover {
-      background-color: var(--purple-hover);
-    }
+    .btn-info { background-color: var(--purple); }
+    .btn-info:hover { background-color: var(--purple-hover); }
 
-    .btn-secondary {
-      background-color: var(--emerald);
-    }
-    .btn-secondary:hover {
-      background-color: var(--emerald-hover);
-    }
+    .btn-secondary { background-color: var(--emerald); }
+    .btn-secondary:hover { background-color: var(--emerald-hover); }
 
     button:disabled {
       background-color: #94a3b8;
@@ -140,9 +126,12 @@
 
     .page-indicator {
       font-weight: bold;
-      padding: 0 10px;
-      min-width: 90px;
+      padding: 6px 12px;
+      background: #e2e8f0;
+      border-radius: 6px;
+      min-width: 130px;
       text-align: center;
+      font-size: 0.9rem;
     }
 
     .image-container {
@@ -181,9 +170,7 @@
       direction: ltr;
     }
 
-    .link-info a {
-      color: var(--primary);
-    }
+    .link-info a { color: var(--primary); }
   </style>
 </head>
 <body>
@@ -192,11 +179,10 @@
     <div class="card">
       <h1>نمایشگر اسناد کتابخانه ملی</h1>
 
-      <!-- کادر ورود لینک و دکمه‌های اصلی -->
+      <!-- کادر ورود لینک -->
       <div class="input-group">
         <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا وارد کنید..." />
         <button id="loadBtn" class="btn-primary">نمایش تصویر</button>
-        <button id="topInfoBtn" class="btn-info">توضیحات سند 📋</button>
       </div>
       <div id="errorMsg" class="error"></div>
 
@@ -204,9 +190,11 @@
       <div id="viewerSection" style="display: none;">
         <div class="controls">
           <div class="nav-buttons">
-            <button id="prevBtn" class="btn-primary">صفحه قبلی (Back)</button>
-            <span class="page-indicator">صفحه <span id="pageDisplay">1</span></span>
             <button id="nextBtn" class="btn-primary">صفحه بعدی (Next)</button>
+            <span class="page-indicator">
+              صفحه <span id="pageDisplay">1</span> <span id="totalPagesDisplay"></span>
+            </span>
+            <button id="prevBtn" class="btn-primary">صفحه قبلی (Back)</button>
           </div>
           
           <div class="action-buttons">
@@ -227,8 +215,8 @@
   <script>
     let currentId = '';
     let currentPage = 1;
+    let totalPages = null;
 
-    // استخراج آی‌دی از انواع آدرس‌ها
     function extractId(url) {
       try {
         const urlObj = new URL(url.trim());
@@ -239,17 +227,53 @@
       }
     }
 
-    // ساخت آدرس تصویر
     function buildImageUrl(id, page) {
       return `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=${id}&db=false&pn=${page}&cid=${id}`;
     }
 
-    // ساخت آدرس توضیحات (Compare)
     function buildInfoUrl(id) {
       return `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
     }
 
-    // بارگذاری و نمایش تصویر
+    // دریافت خودکار تعداد کل صفحات از طریق Proxy
+    async function fetchTotalPages(id) {
+      const totalDisp = document.getElementById('totalPagesDisplay');
+      totalDisp.innerText = '(در حال محاسبه...)';
+      totalPages = null;
+
+      const targetUrl = `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network error');
+        const htmlText = await response.text();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+
+        // یافتن منوی کشویی یا عناصر حاوی تعداد صفحات در Compare.aspx
+        const pageOptions = doc.querySelectorAll('select option, #ddlPages option, .page-count');
+        
+        if (pageOptions && pageOptions.length > 0) {
+          totalPages = pageOptions.length;
+        } else {
+          // در صورت عدم یافتن گزینه منو، جستجو در متن HTML
+          const match = htmlText.match(/از\s*(\d+)/) || htmlText.match(/Total\s*:\s*(\d+)/i);
+          if (match) totalPages = parseInt(match[1]);
+        }
+
+        if (totalPages) {
+          totalDisp.innerText = `از ${totalPages}`;
+        } else {
+          totalDisp.innerText = '';
+        }
+      } catch (e) {
+        console.warn('امکان محاسبه تعداد صفحات وجود نداشت:', e);
+        totalDisp.innerText = '';
+      }
+    }
+
     function loadDocument() {
       const input = document.getElementById('urlInput').value;
       const errorDiv = document.getElementById('errorMsg');
@@ -265,26 +289,14 @@
       currentPage = 1;
       updateViewer();
       document.getElementById('viewerSection').style.display = 'block';
-    }
 
-    // باز کردن مستقیم لینک توضیحات بدون نیاز به نمایش تصویر
-    function openInfoDirectly() {
-      const input = document.getElementById('urlInput').value;
-      const errorDiv = document.getElementById('errorMsg');
-      errorDiv.innerText = '';
-
-      const extractedId = extractId(input) || currentId;
-      if (!extractedId) {
-        errorDiv.innerText = 'خطا: لطفاً ابتدا لینک حاوی ID را در کادر وارد کنید.';
-        return;
-      }
-
-      const infoUrl = buildInfoUrl(extractedId);
-      window.open(infoUrl, '_blank');
+      // استخراج تعداد کل صفحات به صورت هم‌زمان
+      fetchTotalPages(currentId);
     }
 
     function changePage(delta) {
       if (currentPage + delta < 1) return;
+      if (totalPages && currentPage + delta > totalPages) return;
       currentPage += delta;
       updateViewer();
     }
@@ -294,11 +306,19 @@
       const imgElem = document.getElementById('docImage');
       const pageDisp = document.getElementById('pageDisplay');
       const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
       const directLink = document.getElementById('directLink');
 
       imgElem.src = imgUrl;
       pageDisp.innerText = currentPage;
+      
       prevBtn.disabled = currentPage <= 1;
+      if (totalPages) {
+        nextBtn.disabled = currentPage >= totalPages;
+      } else {
+        nextBtn.disabled = false;
+      }
+
       directLink.innerHTML = `آدرس تصویر جاری: <a href="${imgUrl}" target="_blank" rel="noopener noreferrer">${imgUrl}</a>`;
     }
 
@@ -308,12 +328,17 @@
       window.open(imgUrl, '_blank');
     }
 
+    function openInfoInNewTab() {
+      if (!currentId) return;
+      const infoUrl = buildInfoUrl(currentId);
+      window.open(infoUrl, '_blank');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('loadBtn').addEventListener('click', loadDocument);
-      document.getElementById('topInfoBtn').addEventListener('click', openInfoDirectly);
-      document.getElementById('infoBtn').addEventListener('click', openInfoDirectly);
-      document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
+      document.getElementById('infoBtn').addEventListener('click', openInfoInNewTab);
       document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
+      document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
       document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
 
       document.getElementById('urlInput').addEventListener('keypress', (e) => {
