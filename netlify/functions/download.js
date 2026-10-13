@@ -1,206 +1,79 @@
-// netlify/functions/download.js
+let currentId = '';
+let currentPage = 1;
 
-const ALLOWED_HOST = "dl.nlai.ir";
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
-}
-
-function getParam(url, name) {
+// استخراج شناسه ID از URL
+function extractId(url) {
   try {
-    return new URL(url).searchParams.get(name);
-  } catch {
+    const urlObj = new URL(url.trim());
+    const params = new URLSearchParams(urlObj.search);
+    return params.get('ID') || params.get('id') || params.get('cid');
+  } catch (e) {
     return null;
   }
 }
 
-export default async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+// ساخت آدرس تصویر بر اساس ID و صفحه
+function buildImageUrl(id, page) {
+  return `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=${id}&db=false&pn=${page}&cid=${id}`;
+}
+
+// بارگذاری اولیه سند
+function loadDocument() {
+  const input = document.getElementById('urlInput').value;
+  const errorDiv = document.getElementById('errorMsg');
+  errorDiv.innerText = '';
+
+  const extractedId = extractId(input);
+  if (!extractedId) {
+    errorDiv.innerText = 'شناسه (ID) معتبر از لینک استخراج نشد. لطفاً آدرس را بررسی کنید.';
+    return;
   }
 
-  if (request.method !== "POST") {
-    return json({ error: "فقط POST پشتیبانی می‌شود." }, 405);
-  }
+  currentId = extractedId;
+  currentPage = 1;
+  updateViewer();
+  document.getElementById('viewerSection').style.display = 'block';
+}
 
-  let body;
+// تغییر شماره صفحه (+1 یا -1)
+function changePage(delta) {
+  if (currentPage + delta < 1) return;
+  currentPage += delta;
+  updateViewer();
+}
 
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "درخواست JSON معتبر نیست." }, 400);
-  }
+// به‌روزرسانی تصویر و دکمه‌ها
+function updateViewer() {
+  const imgUrl = buildImageUrl(currentId, currentPage);
+  const imgElem = document.getElementById('docImage');
+  const pageDisp = document.getElementById('pageDisplay');
+  const prevBtn = document.getElementById('prevBtn');
+  const directLink = document.getElementById('directLink');
 
-  let source;
+  imgElem.src = imgUrl;
+  pageDisp.innerText = currentPage;
+  prevBtn.disabled = currentPage <= 1;
+  directLink.innerHTML = `آدرس تصویر جاری: <a href="${imgUrl}" target="_blank" rel="noopener noreferrer">${imgUrl}</a>`;
+}
 
-  try {
-    source = new URL(body.url);
-  } catch {
-    return json({ error: "لینک واردشده معتبر نیست." }, 400);
-  }
+// باز کردن تصویر در تب جدید
+function openInNewTab() {
+  if (!currentId) return;
+  const imgUrl = buildImageUrl(currentId, currentPage);
+  window.open(imgUrl, '_blank');
+}
 
-  if (
-    source.hostname !== ALLOWED_HOST ||
-    source.pathname.toLowerCase() !==
-      "/ui/controls/imageform.aspx"
-  ) {
-    return json({
-      error: "لینک صفحه ImageForm از dl.nlai.ir را وارد کنید.",
-    }, 400);
-  }
+// اتصال رویدادها (Event Listeners) پس از بارگذاری DOM
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loadBtn').addEventListener('click', loadDocument);
+  document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
+  document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
+  document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
 
-  const collectionId =
-    source.searchParams.get("ID") ||
-    source.searchParams.get("id");
-
-  if (!collectionId) {
-    return json({
-      error: "شناسه ID در لینک پیدا نشد.",
-    }, 400);
-  }
-
-  try {
-    const response = await fetch(source.href, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      return json({
-        error: `خطای سایت منبع: ${response.status}`,
-      }, 502);
+  // امکان بارگذاری با کلید Enter در کادر ورودی
+  document.getElementById('urlInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      loadDocument();
     }
-
-    const html = await response.text();
-
-    // جست‌وجوی لینک‌های DisplayImage در HTML
-    const matches = [
-      ...html.matchAll(
-        /DisplayImage\.aspx\?[^"'<>\\\s]+/gi
-      ),
-    ];
-
-    const displayUrls = matches
-      .map((match) => {
-        let value = match[0]
-          .replace(/&amp;/gi, "&")
-          .replace(/\\u0026/g, "&");
-
-        try {
-          return new URL(
-            value.startsWith("/")
-              ? value
-              : "/UI/Forms/" + value,
-            source.origin
-          );
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-
-    let imageId = null;
-    let cid = collectionId;
-    let pageCount = 0;
-
-    for (const url of displayUrls) {
-      imageId ||= url.searchParams.get("id");
-      cid = url.searchParams.get("cid") || cid;
-
-      pageCount = Math.max(
-        pageCount,
-        Number(url.searchParams.get("pn")) || 0
-      );
-    }
-
-    // الگوهای عمومی برای تشخیص تعداد صفحه
-    const countPatterns = [
-      /(?:totalPages|pageCount|PageCount|TotalPages)\s*[:=]\s*["']?(\d+)/gi,
-      /(?:تعداد\s*صفحه(?:ات)?|صفحات)\s*[:：]?\s*(\d+)/g,
-    ];
-
-    for (const pattern of countPatterns) {
-      for (const match of html.matchAll(pattern)) {
-        pageCount = Math.max(
-          pageCount,
-          Number(match[1]) || 0
-        );
-      }
-    }
-
-    if (!imageId) {
-      return json({
-        error:
-          "شناسه تصویر در HTML پیدا نشد. باید ساختار واقعی صفحه بررسی شود.",
-      }, 422);
-    }
-
-    if (pageCount < 1) {
-      return json({
-        error:
-          "تعداد صفحات تشخیص داده نشد؛ لینک‌های صفحه بعد باید بررسی شوند.",
-      }, 422);
-    }
-
-    if (pageCount > 500) {
-      return json({
-        error: "تعداد صفحه غیرعادی است.",
-      }, 422);
-    }
-
-    const pages = Array.from(
-      { length: pageCount },
-      (_, index) => {
-        const pageNumber = index + 1;
-
-        const imagePage = new URL(
-          "/UI/Forms/DisplayImage.aspx",
-          source.origin
-        );
-
-        imagePage.searchParams.set("id", imageId);
-        imagePage.searchParams.set("db", "false");
-        imagePage.searchParams.set("pn", String(pageNumber));
-        imagePage.searchParams.set("cid", cid);
-
-        return {
-          page: pageNumber,
-          imagePageUrl: imagePage.href,
-
-          // فعلاً آدرس صفحه است، نه فایل واقعی thumbnail
-          thumbnailUrl: imagePage.href,
-        };
-      }
-    );
-
-    return json({
-      collectionId: cid,
-      imageId,
-      pageCount,
-      pages,
-      note:
-        "آدرس واقعی تامبنیل هنوز از سایت منبع استخراج نشده است.",
-    });
-  } catch (error) {
-    return json({
-      error:
-        "ارتباط با سایت منبع ناموفق بود. ممکن است دسترسی سروری محدود شده باشد.",
-    }, 502);
-  }
-};
+  });
+});
