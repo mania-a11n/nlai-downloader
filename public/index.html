@@ -129,14 +129,14 @@
       padding: 6px 12px;
       background: #e2e8f0;
       border-radius: 6px;
-      min-width: 130px;
+      min-width: 140px;
       text-align: center;
       font-size: 0.9rem;
     }
 
     .image-container {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 15px;
       background: #f1f5f9;
       border: 1px dashed var(--border);
       border-radius: 8px;
@@ -158,6 +158,17 @@
       color: #dc2626;
       font-size: 0.9rem;
       margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .status-badge {
+      font-size: 0.85rem;
+      color: #334155;
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      text-align: center;
       font-weight: 500;
     }
 
@@ -203,6 +214,8 @@
           </div>
         </div>
 
+        <div id="statusBadge" class="status-badge"></div>
+
         <div class="image-container">
           <img id="docImage" src="" alt="در حال بارگذاری..." />
         </div>
@@ -216,6 +229,7 @@
     let currentId = '';
     let currentPage = 1;
     let totalPages = null;
+    let isDetecting = false;
 
     function extractId(url) {
       try {
@@ -235,43 +249,135 @@
       return `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
     }
 
-    // دریافت خودکار تعداد کل صفحات از طریق Proxy
-    async function fetchTotalPages(id) {
+    // تست وجود تصویر در یک شماره صفحه مشخص (کاملاً مستقل از CORS و بدون فیلتر)
+    function checkImageExists(id, page) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const timer = setTimeout(() => {
+          img.src = '';
+          resolve(false);
+        }, 4000);
+
+        img.onload = () => {
+          clearTimeout(timer);
+          if (img.naturalWidth > 30 && img.naturalHeight > 30) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        };
+
+        img.onerror = () => {
+          clearTimeout(timer);
+          resolve(false);
+        };
+
+        img.src = buildImageUrl(id, page);
+      });
+    }
+
+    // کشف خودکار تعداد کل صفحات با الگوریتم جستجوی دودویی مستقیم روی تصاویر
+    async function autoDetectTotalPages(id) {
+      if (isDetecting) return;
+      isDetecting = true;
+
       const totalDisp = document.getElementById('totalPagesDisplay');
-      totalDisp.innerText = '(در حال محاسبه...)';
-      totalPages = null;
+      const statusBadge = document.getElementById('statusBadge');
+      totalDisp.innerText = '(در حال شمارش...)';
+      statusBadge.innerText = 'در حال محاسبه و شمارش تعداد کل عکس‌های موجود...';
 
-      const targetUrl = `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-
-      try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('Network error');
-        const htmlText = await response.text();
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlText, 'text/html');
-
-        // یافتن منوی کشویی یا عناصر حاوی تعداد صفحات در Compare.aspx
-        const pageOptions = doc.querySelectorAll('select option, #ddlPages option, .page-count');
-        
-        if (pageOptions && pageOptions.length > 0) {
-          totalPages = pageOptions.length;
-        } else {
-          // در صورت عدم یافتن گزینه منو، جستجو در متن HTML
-          const match = htmlText.match(/از\s*(\d+)/) || htmlText.match(/Total\s*:\s*(\d+)/i);
-          if (match) totalPages = parseInt(match[1]);
-        }
-
-        if (totalPages) {
-          totalDisp.innerText = `از ${totalPages}`;
-        } else {
-          totalDisp.innerText = '';
-        }
-      } catch (e) {
-        console.warn('امکان محاسبه تعداد صفحات وجود نداشت:', e);
-        totalDisp.innerText = '';
+      // ۱. ابتدا تلاش سریع با پروکسی‌های جایگزین
+      let foundViaProxy = await tryFetchViaProxies(id);
+      if (foundViaProxy) {
+        totalPages = foundViaProxy;
+        totalDisp.innerText = `از ${totalPages}`;
+        statusBadge.innerText = `تعداد کل عکس‌های موجود: ${totalPages} عدد`;
+        isDetecting = false;
+        updateNavState();
+        return;
       }
+
+      // ۲. در صورت مسدود بودن پروکسی، شمارش مستقیم عکس‌ها با جستجوی دودویی
+      try {
+        let low = 1;
+        let high = 1;
+
+        // پیدا کردن بازه بالای صفحات (۱، ۲، ۴، ۸، ۱۶، ۳۲، ۶۴...)
+        while (await checkImageExists(id, high)) {
+          low = high;
+          high *= 2;
+          if (high > 1000) break; // سقف حد بالایی
+        }
+
+        if (low === 1 && !(await checkImageExists(id, 1))) {
+          totalDisp.innerText = '';
+          statusBadge.innerText = '';
+          isDetecting = false;
+          return;
+        }
+
+        // جستجوی دقیق آخرین شماره صفحه موجود
+        let lastValid = low;
+        let start = low;
+        let end = high;
+
+        while (start <= end) {
+          let mid = Math.floor((start + end) / 2);
+          statusBadge.innerText = `در حال تست وجود صفحه ${mid}...`;
+          let exists = await checkImageExists(id, mid);
+
+          if (exists) {
+            lastValid = mid;
+            start = mid + 1;
+          } else {
+            end = mid - 1;
+          }
+        }
+
+        totalPages = lastValid;
+        totalDisp.innerText = `از ${totalPages}`;
+        statusBadge.innerText = `شمارش تکمیل شد. تعداد کل عکس‌های موجود: ${totalPages} عدد`;
+      } catch (e) {
+        console.error('خطا در محاسبه صفحات:', e);
+        totalDisp.innerText = '';
+        statusBadge.innerText = '';
+      }
+
+      isDetecting = false;
+      updateNavState();
+    }
+
+    async function tryFetchViaProxies(id) {
+      const targetUrl = buildInfoUrl(id);
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      ];
+
+      for (let proxy of proxies) {
+        try {
+          const res = await fetch(proxy, { signal: AbortSignal.timeout(3000) });
+          if (!res.ok) continue;
+          let htmlText = '';
+          if (proxy.includes('allorigins')) {
+            const json = await res.json();
+            htmlText = json.contents || '';
+          } else {
+            htmlText = await res.text();
+          }
+
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlText, 'text/html');
+          const options = doc.querySelectorAll('select option, #ddlPages option');
+          if (options && options.length > 0) return options.length;
+
+          const match = htmlText.match(/از\s*(\d+)/) || htmlText.match(/تعداد\s*:\s*(\d+)/);
+          if (match) return parseInt(match[1]);
+        } catch (e) {
+          // پروکسی بعدی تست می‌شود
+        }
+      }
+      return null;
     }
 
     function loadDocument() {
@@ -287,11 +393,12 @@
 
       currentId = extractedId;
       currentPage = 1;
+      totalPages = null;
       updateViewer();
       document.getElementById('viewerSection').style.display = 'block';
 
-      // استخراج تعداد کل صفحات به صورت هم‌زمان
-      fetchTotalPages(currentId);
+      // آغاز فرایند شمارش
+      autoDetectTotalPages(currentId);
     }
 
     function changePage(delta) {
@@ -301,23 +408,26 @@
       updateViewer();
     }
 
-    function updateViewer() {
-      const imgUrl = buildImageUrl(currentId, currentPage);
-      const imgElem = document.getElementById('docImage');
-      const pageDisp = document.getElementById('pageDisplay');
+    function updateNavState() {
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
-      const directLink = document.getElementById('directLink');
-
-      imgElem.src = imgUrl;
-      pageDisp.innerText = currentPage;
-      
       prevBtn.disabled = currentPage <= 1;
       if (totalPages) {
         nextBtn.disabled = currentPage >= totalPages;
       } else {
         nextBtn.disabled = false;
       }
+    }
+
+    function updateViewer() {
+      const imgUrl = buildImageUrl(currentId, currentPage);
+      const imgElem = document.getElementById('docImage');
+      const pageDisp = document.getElementById('pageDisplay');
+      const directLink = document.getElementById('directLink');
+
+      imgElem.src = imgUrl;
+      pageDisp.innerText = currentPage;
+      updateNavState();
 
       directLink.innerHTML = `آدرس تصویر جاری: <a href="${imgUrl}" target="_blank" rel="noopener noreferrer">${imgUrl}</a>`;
     }
