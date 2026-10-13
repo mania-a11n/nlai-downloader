@@ -1,182 +1,121 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101827">
-<title>نمایشگر تصاویر کتابخانه ملی</title>
-
-<style>
-*{box-sizing:border-box}
-body{
-  margin:0;background:#0b1120;color:#f1f5f9;
-  font-family:Tahoma,Arial,sans-serif
-}
-main{max-width:700px;margin:auto;padding:18px 14px}
-h1{font-size:21px;text-align:center}
-p{color:#94a3b8;font-size:13px;line-height:1.9}
-.panel{
-  background:#151e30;border:1px solid #29364c;
-  border-radius:14px;padding:15px;margin-bottom:15px
-}
-input{
-  width:100%;padding:13px;border-radius:9px;
-  border:1px solid #475569;background:#0b1120;
-  color:white;font-size:13px;direction:ltr
-}
-button{
-  border:0;border-radius:9px;padding:12px;
-  font-family:inherit;font-size:14px;cursor:pointer
-}
-.primary{background:#2563eb;color:white;width:100%;margin-top:10px}
-.secondary{background:#27354b;color:white;flex:1}
-button:disabled{opacity:.4}
-#status{font-size:13px;line-height:1.9;margin-top:10px}
-.viewer{
-  background:#080d16;border:1px solid #29364c;
-  border-radius:12px;overflow:hidden
-}
-.viewer iframe{
-  display:block;width:100%;height:65vh;min-height:350px;
-  border:0;background:white
-}
-.toolbar{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:8px;margin:12px 0
-}
-#counter{font-size:14px;white-space:nowrap}
-.original{
-  display:block;text-align:center;text-decoration:none;
-  color:white;background:#16804a;border-radius:9px;
-  padding:13px;margin-top:12px
-}
-.small{font-size:12px;color:#94a3b8}
-</style>
-</head>
-
-<body>
-<main>
-  <h1>📚 نمایشگر تصاویر کتابخانه ملی</h1>
-
-  <section class="panel">
-    <p>لینک اولین صفحه تصویر را وارد کن؛ مانند لینک DisplayImage.aspx که پارامتر pn=1 دارد.</p>
-
-    <form id="form">
-      <input id="url" type="url" required
-        placeholder="https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=..."
-      >
-      <button class="primary" id="load" type="submit">
-        نمایش تصاویر
-      </button>
-    </form>
-    <div id="status" role="status"></div>
-  </section>
-
-  <section id="reader" hidden>
-    <div class="viewer">
-      <iframe id="preview" title="پیش‌نمایش صفحه تصویر"
-        referrerpolicy="no-referrer"></iframe>
-    </div>
-
-    <div class="toolbar">
-      <button class="secondary" id="prev">→ قبلی</button>
-      <span id="counter">صفحه ۱</span>
-      <button class="secondary" id="next">بعدی ←</button>
-    </div>
-
-    <a id="original" class="original"
-      target="_blank" rel="noopener noreferrer">
-      باز کردن عکس اصلی در سایت کتابخانه ملی ↗
-    </a>
-
-    <p class="small">
-      اگر پیش‌نمایش نمایش داده نشد، از دکمه سبز برای باز کردن صفحه در سایت اصلی استفاده کن.
-    </p>
-  </section>
-</main>
-
-<script>
-const $ = id => document.getElementById(id);
-
-let baseUrl = null;
-let currentPage = 1;
-let maxPage = 500;
-
-function makePageUrl(number) {
-  const u = new URL(baseUrl);
-  u.searchParams.set("pn", String(number));
-  return u.href;
-}
-
-function renderPage() {
-  const pageUrl = makePageUrl(currentPage);
-
-  $("preview").src = pageUrl;
-  $("original").href = pageUrl;
-  $("counter").textContent = "صفحه " + currentPage;
-
-  $("prev").disabled = currentPage <= 1;
-  $("next").disabled = currentPage >= maxPage;
-}
-
-$("form").addEventListener("submit", event => {
-  event.preventDefault();
-
-  try {
-    const inputUrl = new URL($("url").value.trim());
-
-    if (
-      inputUrl.hostname !== "dl.nlai.ir" ||
-      !inputUrl.pathname.toLowerCase().endsWith(
-        "/ui/forms/displayimage.aspx"
-      )
-    ) {
-      throw new Error(
-        "لینک باید از نوع DisplayImage.aspx باشد."
-      );
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نمایشگر اسناد کتابخانه ملی</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
     }
 
-    if (
-      !inputUrl.searchParams.get("id") ||
-      !inputUrl.searchParams.get("cid") ||
-      !inputUrl.searchParams.get("pn")
-    ) {
-      throw new Error(
-        "پارامترهای id، cid و pn در لینک لازم هستند."
-      );
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Tahoma, Segoe UI, sans-serif;
     }
 
-    baseUrl = inputUrl.href;
-    currentPage =
-      Number(inputUrl.searchParams.get("pn")) || 1;
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
 
-    // این سقف فنی است، نه تعداد واقعی صفحات سند.
-    maxPage = 500;
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
-    $("reader").hidden = false;
-    $("status").textContent =
-      "لینک دریافت شد. برای رفتن به صفحه بعد از دکمه بعدی استفاده کن.";
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
 
-    renderPage();
-  } catch (error) {
-    $("reader").hidden = true;
-    $("status").textContent = "خطا: " + error.message;
-  }
-});
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      text-align: center;
+    }
 
-$("prev").addEventListener("click", () => {
-  if (currentPage > 1) {
-    currentPage--;
-    renderPage();
-  }
-});
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
 
-$("next").addEventListener("click", () => {
-  if (currentPage < maxPage) {
-    currentPage++;
-    renderPage();
-  }
-});
-</script>
-</body>
-</html>
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      direction: ltr;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button:disabled {
+      background-color: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: #059669;
+    }
+
+    .btn-secondary:hover {
+      background-color: #047857;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .page
