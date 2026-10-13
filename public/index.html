@@ -1,470 +1,182 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101827">
-  <title>استخراج تصاویر کتابخانه ملی</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>نمایشگر تصاویر کتابخانه ملی</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: #0b1120;
-      color: #f1f5f9;
-      font-family: Tahoma, Arial, sans-serif;
-      line-height: 1.8;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 20px 14px 50px;
-    }
-
-    header {
-      text-align: center;
-      padding: 24px 8px;
-    }
-
-    .logo {
-      font-size: 38px;
-      margin-bottom: 5px;
-    }
-
-    h1 {
-      font-size: 22px;
-      margin: 5px 0;
-    }
-
-    .subtitle {
-      color: #94a3b8;
-      font-size: 13px;
-    }
-
-    .panel {
-      background: #151e30;
-      border: 1px solid #29364c;
-      border-radius: 16px;
-      padding: 17px;
-      margin-bottom: 18px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 9px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    input {
-      display: block;
-      width: 100%;
-      background: #0b1120;
-      border: 1px solid #39465d;
-      border-radius: 10px;
-      padding: 14px;
-      color: white;
-      font-size: 14px;
-      direction: ltr;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: #60a5fa;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 12px 15px;
-      font-family: inherit;
-      font-size: 14px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .primary {
-      width: 100%;
-      background: #3b82f6;
-      color: white;
-      margin-top: 12px;
-    }
-
-    .secondary {
-      background: #27354b;
-      color: #e2e8f0;
-    }
-
-    button:disabled {
-      opacity: .55;
-      cursor: wait;
-    }
-
-    .hint {
-      color: #94a3b8;
-      font-size: 12px;
-      margin: 10px 0 0;
-    }
-
-    #status {
-      white-space: pre-wrap;
-      font-size: 13px;
-      margin-top: 12px;
-      color: #bfdbfe;
-    }
-
-    .summary {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin: 22px 2px 12px;
-    }
-
-    .summary h2 {
-      font-size: 17px;
-      margin: 0;
-    }
-
-    .badge {
-      background: #1e3a5f;
-      color: #bfdbfe;
-      padding: 5px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-
-    .actions button {
-      flex: 1;
-      min-width: 130px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .card {
-      background: #151e30;
-      border: 1px solid #29364c;
-      border-radius: 13px;
-      overflow: hidden;
-      min-width: 0;
-    }
-
-    .thumbnail {
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      background: #0b1120;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      color: #94a3b8;
-      font-size: 12px;
-      text-align: center;
-      padding: 10px;
-    }
-
-    .thumbnail img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .card-content {
-      padding: 11px;
-    }
-
-    .card-title {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 9px;
-    }
-
-    .card a {
-      display: block;
-      text-align: center;
-      text-decoration: none;
-      border-radius: 8px;
-      padding: 9px 5px;
-      font-size: 12px;
-      margin-top: 7px;
-    }
-
-    .open-link {
-      color: white;
-      background: #2563eb;
-    }
-
-    .copy-link {
-      color: #cbd5e1;
-      background: #27354b;
-    }
-
-    footer {
-      color: #64748b;
-      text-align: center;
-      font-size: 11px;
-      margin-top: 25px;
-    }
-
-    @media (min-width: 650px) {
-      .grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-  </style>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#0b1120;color:#f1f5f9;
+  font-family:Tahoma,Arial,sans-serif
+}
+main{max-width:700px;margin:auto;padding:18px 14px}
+h1{font-size:21px;text-align:center}
+p{color:#94a3b8;font-size:13px;line-height:1.9}
+.panel{
+  background:#151e30;border:1px solid #29364c;
+  border-radius:14px;padding:15px;margin-bottom:15px
+}
+input{
+  width:100%;padding:13px;border-radius:9px;
+  border:1px solid #475569;background:#0b1120;
+  color:white;font-size:13px;direction:ltr
+}
+button{
+  border:0;border-radius:9px;padding:12px;
+  font-family:inherit;font-size:14px;cursor:pointer
+}
+.primary{background:#2563eb;color:white;width:100%;margin-top:10px}
+.secondary{background:#27354b;color:white;flex:1}
+button:disabled{opacity:.4}
+#status{font-size:13px;line-height:1.9;margin-top:10px}
+.viewer{
+  background:#080d16;border:1px solid #29364c;
+  border-radius:12px;overflow:hidden
+}
+.viewer iframe{
+  display:block;width:100%;height:65vh;min-height:350px;
+  border:0;background:white
+}
+.toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;margin:12px 0
+}
+#counter{font-size:14px;white-space:nowrap}
+.original{
+  display:block;text-align:center;text-decoration:none;
+  color:white;background:#16804a;border-radius:9px;
+  padding:13px;margin-top:12px
+}
+.small{font-size:12px;color:#94a3b8}
+</style>
 </head>
 
 <body>
-  <main class="container">
+<main>
+  <h1>📚 نمایشگر تصاویر کتابخانه ملی</h1>
 
-    <header>
-      <div class="logo">📚</div>
-      <h1>استخراج تصاویر کتابخانه ملی</h1>
-      <div class="subtitle">
-        پیدا کردن لینک صفحات اسناد دیجیتال
-      </div>
-    </header>
+  <section class="panel">
+    <p>لینک اولین صفحه تصویر را وارد کن؛ مانند لینک DisplayImage.aspx که پارامتر pn=1 دارد.</p>
 
-    <section class="panel">
-      <form id="extractForm">
-        <label for="sourceUrl">
-          لینک صفحه سند را وارد کن
-        </label>
+    <form id="form">
+      <input id="url" type="url" required
+        placeholder="https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=..."
+      >
+      <button class="primary" id="load" type="submit">
+        نمایش تصاویر
+      </button>
+    </form>
+    <div id="status" role="status"></div>
+  </section>
 
-        <input
-          id="sourceUrl"
-          type="url"
-          required
-          autocomplete="url"
-          placeholder="https://dl.nlai.ir/UI/Controls/ImageForm.aspx?ID=..."
-        >
+  <section id="reader" hidden>
+    <div class="viewer">
+      <iframe id="preview" title="پیش‌نمایش صفحه تصویر"
+        referrerpolicy="no-referrer"></iframe>
+    </div>
 
-        <button class="primary" id="extractButton" type="submit">
-          استخراج تصاویر
-        </button>
-      </form>
+    <div class="toolbar">
+      <button class="secondary" id="prev">→ قبلی</button>
+      <span id="counter">صفحه ۱</span>
+      <button class="secondary" id="next">بعدی ←</button>
+    </div>
 
-      <p class="hint">
-        لینک صفحه اصلی سند را وارد کن، نه لینک یک صفحه از تصاویر.
-      </p>
+    <a id="original" class="original"
+      target="_blank" rel="noopener noreferrer">
+      باز کردن عکس اصلی در سایت کتابخانه ملی ↗
+    </a>
 
-      <div id="status" role="status"></div>
-    </section>
+    <p class="small">
+      اگر پیش‌نمایش نمایش داده نشد، از دکمه سبز برای باز کردن صفحه در سایت اصلی استفاده کن.
+    </p>
+  </section>
+</main>
 
-    <section id="results" hidden>
-      <div class="summary">
-        <h2>صفحه‌های پیدا شده</h2>
-        <span class="badge" id="pageCount">۰ صفحه</span>
-      </div>
+<script>
+const $ = id => document.getElementById(id);
 
-      <div class="actions">
-        <button class="secondary" id="copyAll" type="button">
-          کپی همه لینک‌ها
-        </button>
+let baseUrl = null;
+let currentPage = 1;
+let maxPage = 500;
 
-        <button class="secondary" id="openFirst" type="button">
-          باز کردن صفحه اول
-        </button>
-      </div>
+function makePageUrl(number) {
+  const u = new URL(baseUrl);
+  u.searchParams.set("pn", String(number));
+  return u.href;
+}
 
-      <div class="grid" id="imageGrid"></div>
-    </section>
+function renderPage() {
+  const pageUrl = makePageUrl(currentPage);
 
-    <footer>
-      ابزار استخراج لینک تصاویر · نسخه آزمایشی
-    </footer>
+  $("preview").src = pageUrl;
+  $("original").href = pageUrl;
+  $("counter").textContent = "صفحه " + currentPage;
 
-  </main>
+  $("prev").disabled = currentPage <= 1;
+  $("next").disabled = currentPage >= maxPage;
+}
 
-  <script>
-    const form = document.getElementById("extractForm");
-    const sourceInput = document.getElementById("sourceUrl");
-    const extractButton = document.getElementById("extractButton");
-    const statusBox = document.getElementById("status");
-    const results = document.getElementById("results");
-    const imageGrid = document.getElementById("imageGrid");
-    const pageCount = document.getElementById("pageCount");
+$("form").addEventListener("submit", event => {
+  event.preventDefault();
 
-    let pages = [];
+  try {
+    const inputUrl = new URL($("url").value.trim());
 
-    function showStatus(message) {
-      statusBox.textContent = message;
+    if (
+      inputUrl.hostname !== "dl.nlai.ir" ||
+      !inputUrl.pathname.toLowerCase().endsWith(
+        "/ui/forms/displayimage.aspx"
+      )
+    ) {
+      throw new Error(
+        "لینک باید از نوع DisplayImage.aspx باشد."
+      );
     }
 
-    function createCard(item) {
-      const card = document.createElement("article");
-      card.className = "card";
-
-      const thumbnail = document.createElement("div");
-      thumbnail.className = "thumbnail";
-      thumbnail.textContent = "پیش‌نمایش تصویر در دسترس نیست";
-
-      /*
-       * این آدرس فعلاً آدرس صفحه نمایش تصویر است.
-       * تا زمانی که URL واقعی فایل تصویر مشخص نشود،
-       * نباید آن را مستقیماً به عنوان عکس در img قرار داد.
-       */
-      if (item.thumbnailUrl &&
-          /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(item.thumbnailUrl)) {
-        const img = document.createElement("img");
-        img.loading = "lazy";
-        img.alt = "تصویر صفحه " + item.page;
-        img.src = item.thumbnailUrl;
-
-        img.onload = () => {
-          thumbnail.textContent = "";
-          thumbnail.appendChild(img);
-        };
-
-        img.onerror = () => {
-          thumbnail.textContent =
-            "تصویر بندانگشتی بارگذاری نشد";
-        };
-      }
-
-      const content = document.createElement("div");
-      content.className = "card-content";
-
-      const title = document.createElement("div");
-      title.className = "card-title";
-      title.textContent = "صفحه " + item.page;
-
-      const open = document.createElement("a");
-      open.className = "open-link";
-      open.href = item.imagePageUrl;
-      open.target = "_blank";
-      open.rel = "noopener noreferrer";
-      open.textContent = "باز کردن تصویر ↗";
-
-      const copy = document.createElement("a");
-      copy.className = "copy-link";
-      copy.href = "#";
-      copy.textContent = "کپی لینک صفحه";
-
-      copy.addEventListener("click", async (event) => {
-        event.preventDefault();
-
-        try {
-          await navigator.clipboard.writeText(item.imagePageUrl);
-          copy.textContent = "لینک کپی شد ✓";
-        } catch {
-          window.prompt("لینک را کپی کن:", item.imagePageUrl);
-        }
-      });
-
-      content.append(title, open, copy);
-      card.append(thumbnail, content);
-
-      return card;
+    if (
+      !inputUrl.searchParams.get("id") ||
+      !inputUrl.searchParams.get("cid") ||
+      !inputUrl.searchParams.get("pn")
+    ) {
+      throw new Error(
+        "پارامترهای id، cid و pn در لینک لازم هستند."
+      );
     }
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+    baseUrl = inputUrl.href;
+    currentPage =
+      Number(inputUrl.searchParams.get("pn")) || 1;
 
-      results.hidden = true;
-      imageGrid.replaceChildren();
-      pages = [];
+    // این سقف فنی است، نه تعداد واقعی صفحات سند.
+    maxPage = 500;
 
-      const url = sourceInput.value.trim();
+    $("reader").hidden = false;
+    $("status").textContent =
+      "لینک دریافت شد. برای رفتن به صفحه بعد از دکمه بعدی استفاده کن.";
 
-      extractButton.disabled = true;
-      extractButton.textContent = "در حال استخراج...";
-      showStatus("در حال اتصال به سایت کتابخانه ملی...");
+    renderPage();
+  } catch (error) {
+    $("reader").hidden = true;
+    $("status").textContent = "خطا: " + error.message;
+  }
+});
 
-      try {
-        const response = await fetch("/api/extract", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ url })
-        });
+$("prev").addEventListener("click", () => {
+  if (currentPage > 1) {
+    currentPage--;
+    renderPage();
+  }
+});
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "استخراج لینک‌ها ناموفق بود."
-          );
-        }
-
-        if (!Array.isArray(data.pages) || data.pages.length === 0) {
-          throw new Error(
-            "هیچ صفحه‌ای در پاسخ سرور پیدا نشد."
-          );
-        }
-
-        pages = data.pages;
-
-        pages.forEach((item) => {
-          imageGrid.appendChild(createCard(item));
-        });
-
-        pageCount.textContent = pages.length + " صفحه";
-        results.hidden = false;
-
-        showStatus(
-          pages.length +
-          " صفحه پیدا شد. برای مشاهده هر تصویر روی دکمه آن بزن."
-        );
-
-      } catch (error) {
-        showStatus(
-          "خطا: " + error.message +
-          "\nاگر مشکل تکرار شد، پاسخ تابع Netlify را بررسی کن."
-        );
-      } finally {
-        extractButton.disabled = false;
-        extractButton.textContent = "استخراج تصاویر";
-      }
-    });
-
-    document.getElementById("copyAll").addEventListener(
-      "click",
-      async () => {
-        if (!pages.length) return;
-
-        const links = pages
-          .map((item) => item.imagePageUrl)
-          .join("\n");
-
-        try {
-          await navigator.clipboard.writeText(links);
-          showStatus("همه لینک‌ها کپی شدند.");
-        } catch {
-          window.prompt("همه لینک‌ها:", links);
-        }
-      }
-    );
-
-    document.getElementById("openFirst").addEventListener(
-      "click",
-      () => {
-        if (pages.length) {
-          window.open(
-            pages[0].imagePageUrl,
-            "_blank",
-            "noopener"
-          );
-        }
-      }
-    );
-  </script>
+$("next").addEventListener("click", () => {
+  if (currentPage < maxPage) {
+    currentPage++;
+    renderPage();
+  }
+});
+</script>
 </body>
 </html>
