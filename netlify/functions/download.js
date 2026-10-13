@@ -39,7 +39,7 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // --- دریافت تعداد کل صفحات ---
+    // دریافت تعداد کل صفحات
     if (action === 'info') {
       let totalPages = 5;
       let isEstimated = true;
@@ -78,7 +78,7 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // --- دریافت تصویر صفحه مشخص ---
+    // دریافت تصویر اصلی صفحه
     let targetImageUrl = `https://dl.nlai.ir/UI/Controls/ImageHandler.ashx?ID=${cid}`;
     let displayUrl = `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?cid=${cid}&pn=${requestedPn}`;
     if (docId) displayUrl = `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=${docId}&db=false&pn=${requestedPn}&cid=${cid}`;
