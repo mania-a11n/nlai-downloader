@@ -33,7 +33,7 @@
 
     .container {
       width: 100%;
-      max-width: 850px;
+      max-width: 900px;
       margin-top: 20px;
     }
 
@@ -101,6 +101,14 @@
       background-color: #047857;
     }
 
+    .btn-info {
+      background-color: #7c3aed;
+    }
+
+    .btn-info:hover {
+      background-color: #6d28d9;
+    }
+
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -110,6 +118,12 @@
       margin-top: 20px;
       padding-top: 15px;
       border-top: 1px solid #e2e8f0;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .nav-buttons {
@@ -179,7 +193,7 @@
       </div>
       <div id="errorMsg" class="error"></div>
 
-      <!-- بخش نمایش عکس و دکمه‌ها (در ابتدا مخفی است) -->
+      <!-- بخش نمایش عکس و دکمه‌ها -->
       <div id="viewerSection" style="display: none;">
         <div class="controls">
           <div class="nav-buttons">
@@ -187,7 +201,11 @@
             <span class="page-indicator">صفحه <span id="pageDisplay">1</span></span>
             <button id="nextBtn">صفحه بعدی (Next)</button>
           </div>
-          <button id="openTabBtn" class="btn-secondary">باز کردن عکس در تب جدید ↗</button>
+          
+          <div class="action-buttons">
+            <button id="infoBtn" class="btn-info">مشاهده توضیحات سند 📋</button>
+            <button id="openTabBtn" class="btn-secondary">باز کردن عکس در تب جدید ↗</button>
+          </div>
         </div>
 
         <div class="image-container">
@@ -215,6 +233,10 @@
 
     function buildImageUrl(id, page) {
       return `https://dl.nlai.ir/UI/Forms/DisplayImage.aspx?id=${id}&db=false&pn=${page}&cid=${id}`;
+    }
+
+    function buildInfoUrl(id) {
+      return `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
     }
 
     function loadDocument() {
@@ -259,17 +281,14 @@
       window.open(imgUrl, '_blank');
     }
 
+    function openInfoInNewTab() {
+      if (!currentId) return;
+      const infoUrl = buildInfoUrl(currentId);
+      window.open(infoUrl, '_blank');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('loadBtn').addEventListener('click', loadDocument);
       document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
       document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
-      document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
-
-      document.getElementById('urlInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') loadDocument();
-      });
-    });
-  </script>
-
-</body>
-</html>
+      document.getElementById('
