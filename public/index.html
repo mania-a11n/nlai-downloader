@@ -3,66 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>دانلودر کتابخانه ملی (NLAI)</title>
+  <title>نمایشگر و دانلودر اسناد کتابخانه ملی (NLAI)</title>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { background: #f4f6f8; margin: 0; padding: 20px; color: #333; }
-    .card { max-width: 500px; margin: 20px auto; background: #fff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    h2 { margin-top: 0; text-align: center; color: #1a252f; font-size: 20px; }
-    p { font-size: 14px; color: #666; text-align: center; margin-bottom: 20px; }
-    input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px; font-size: 14px; text-align: left; dir: ltr; }
-    button { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
-    button:disabled { background: #93c5fd; }
-    #result { margin-top: 20px; text-align: center; }
-    #result img { max-width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px; }
-    .dl-btn { display: inline-block; margin-top: 12px; padding: 10px 16px; background: #059669; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; }
-    .error { color: #dc2626; font-size: 14px; margin-top: 10px; }
+    body { background: #f1f5f9; margin: 0; padding: 16px; color: #1e293b; }
+    .card { max-width: 600px; margin: 10px auto; background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    h2 { margin-top: 0; text-align: center; color: #0f172a; font-size: 20px; }
+    p { font-size: 13px; color: #64748b; text-align: center; margin-bottom: 16px; }
+    
+    .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
+    input[type="text"] { flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; text-align: left; dir: ltr; }
+    .btn-main { padding: 12px 18px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; white-space: nowrap; }
+    .btn-main:disabled { background: #94a3b8; }
+
+    /* کنترل‌های گالری */
+    #viewerSection { display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+    .nav-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .nav-btn { padding: 8px 14px; background: #0f172a; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .page-info { font-size: 14px; font-weight: bold; color: #334155; }
+
+    .image-container { position: relative; margin-top: 14px; text-align: center; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .image-container img { max-width: 100%; height: auto; border-radius: 6px; display: block; }
+    
+    .spinner { display: none; position: absolute; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .actions { text-align: center; margin-top: 14px; }
+    .dl-btn { display: inline-block; padding: 10px 20px; background: #059669; color: #fff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: bold; }
+    .error { color: #dc2626; font-size: 13px; text-align: center; margin-top: 10px; word-break: break-word; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>استخراج سند از کتابخانه ملی</h2>
-    <p>لینک صفحه یا شناسه (ID) سند را وارد کنید</p>
-    <input type="text" id="urlInput" placeholder="https://dl.nlai.ir/UI/Controls/ImageForm.aspx?ID=..." />
-    <button id="btn" onclick="process()">استخراج و دریافت تصویر</button>
-    <div id="result"></div>
+    <h2>نمایشگر اسناد کتابخانه ملی</h2>
+    <p>لینک صفحه یا شناسه سند را وارد کنید</p>
+    
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="https://dl.nlai.ir/UI/Controls/ImageForm.aspx?ID=..." />
+      <button class="btn-main" id="fetchBtn" onclick="initDocument()">بارگذاری</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="viewerSection">
+      <div class="nav-bar">
+        <button class="nav-btn" id="prevBtn" onclick="changePage(-1)">◀ قبلی</button>
+        <span class="page-info" id="pageIndicator">صفحه ۱ از ۱</span>
+        <button class="nav-btn" id="nextBtn" onclick="changePage(1)">بعدی ▶</button>
+      </div>
+
+      <div class="image-container">
+        <div class="spinner" id="loadingSpinner"></div>
+        <img id="docImage" src="" alt="تصویر سند" onload="onImageLoaded()" onerror="onImageError()" />
+      </div>
+
+      <div class="actions">
+        <a id="downloadLink" href="#" download="nlai-page.jpg" class="dl-btn">دانلود این صفحه با کیفیت اصلی</a>
+      </div>
+    </div>
   </div>
 
   <script>
-    async function process() {
+    let pages = [];
+    let currentIndex = 0;
+
+    async function initDocument() {
       const input = document.getElementById('urlInput').value.trim();
-      const resultDiv = document.getElementById('result');
-      const btn = document.getElementById('btn');
-      
+      const statusDiv = document.getElementById('status');
+      const fetchBtn = document.getElementById('fetchBtn');
+      const viewerSection = document.getElementById('viewerSection');
+
       if (!input) {
-        resultDiv.innerHTML = '<p class="error">لطفاً لینک را وارد کنید</p>';
+        statusDiv.innerHTML = '<p class="error">لطفاً لینک را وارد کنید</p>';
         return;
       }
 
-      btn.disabled = true;
-      btn.innerText = 'در حال پردازش...';
-      resultDiv.innerHTML = '';
-
-      const proxyUrl = `/.netlify/functions/download?url=${encodeURIComponent(input)}`;
+      fetchBtn.disabled = true;
+      fetchBtn.innerText = 'شناسایی صفحات...';
+      statusDiv.innerHTML = '';
+      viewerSection.style.display = 'none';
 
       try {
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error('دریافت فایل ناموفق بود');
+        const infoUrl = `/.netlify/functions/download?action=info&url=${encodeURIComponent(input)}`;
+        const res = await fetch(infoUrl);
+        
+        if (!res.ok) throw new Error('خطا در دریافت اطلاعات سند');
+        
+        const data = await res.json();
+        pages = data.pages || [];
+        currentIndex = data.initialIndex || 0;
 
-        const blob = await res.blob();
-        const imgUrl = URL.createObjectURL(blob);
+        if (pages.length === 0) {
+          throw new Error('هیچ صفحه‌ای برای این سند پیدا نشد');
+        }
 
-        resultDiv.innerHTML = `
-          <img src="${imgUrl}" alt="تصویر استخراج شده" />
-          <br>
-          <a href="${imgUrl}" download="nlai-document.jpg" class="dl-btn">دانلود تصویر با کیفیت اصلی</a>
-        `;
+        viewerSection.style.display = 'block';
+        loadPage(currentIndex);
+
       } catch (err) {
-        resultDiv.innerHTML = `<p class="error">${err.message}</p>`;
+        statusDiv.innerHTML = `<p class="error">${err.message}</p>`;
       } finally {
-        btn.disabled = false;
-        btn.innerText = 'استخراج و دریافت تصویر';
+        fetchBtn.disabled = false;
+        fetchBtn.innerText = 'بارگذاری';
       }
+    }
+
+    function loadPage(index) {
+      if (index < 0 || index >= pages.length) return;
+      
+      currentIndex = index;
+      const pageId = pages[currentIndex];
+      
+      const imgElem = document.getElementById('docImage');
+      const spinner = document.getElementById('loadingSpinner');
+      const pageIndicator = document.getElementById('pageIndicator');
+      const downloadLink = document.getElementById('downloadLink');
+
+      // آپدیت شماره صفحه
+      pageIndicator.innerText = `صفحه ${currentIndex + 1} از ${pages.length}`;
+      
+      // غیرفعال‌سازی دکمه‌های ناوبری در انتها و ابتدا
+      document.getElementById('prevBtn').disabled = (currentIndex === 0);
+      document.getElementById('nextBtn').disabled = (currentIndex === pages.length - 1);
+
+      // حالت لودینگ
+      spinner.style.display = 'block';
+      imgElem.style.opacity = '0.3';
+
+      const imageUrl = `/.netlify/functions/download?id=${pageId}`;
+      imgElem.src = imageUrl;
+      downloadLink.href = imageUrl;
+      downloadLink.download = `nlai-page-${currentIndex + 1}.jpg`;
+    }
+
+    function changePage(step) {
+      loadPage(currentIndex + step);
+    }
+
+    function onImageLoaded() {
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('docImage').style.opacity = '1';
+    }
+
+    function onImageError() {
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('docImage').style.opacity = '1';
+      alert('خطا در بارگذاری تصویر این صفحه');
     }
   </script>
 </body>
