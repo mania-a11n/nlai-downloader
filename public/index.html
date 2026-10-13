@@ -16,12 +16,13 @@
     .btn-main { padding: 12px 18px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; white-space: nowrap; }
     .btn-main:disabled { background: #94a3b8; }
 
-    /* کنترل‌های گالری */
     #viewerSection { display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px; }
     .nav-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; }
     .nav-btn { padding: 8px 14px; background: #0f172a; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
     .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
     .page-info { font-size: 14px; font-weight: bold; color: #334155; }
+    
+    select { padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: bold; }
 
     .image-container { position: relative; margin-top: 14px; text-align: center; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; }
     .image-container img { max-width: 100%; height: auto; border-radius: 6px; display: block; }
@@ -37,7 +38,7 @@
 <body>
   <div class="card">
     <h2>نمایشگر اسناد کتابخانه ملی</h2>
-    <p>لینک صفحه یا شناسه سند را وارد کنید</p>
+    <p>لینک صفحه سند را وارد کنید</p>
     
     <div class="input-group">
       <input type="text" id="urlInput" placeholder="https://dl.nlai.ir/UI/Controls/ImageForm.aspx?ID=..." />
@@ -49,7 +50,11 @@
     <div id="viewerSection">
       <div class="nav-bar">
         <button class="nav-btn" id="prevBtn" onclick="changePage(-1)">◀ قبلی</button>
-        <span class="page-info" id="pageIndicator">صفحه ۱ از ۱</span>
+        <span class="page-info">
+          صفحه 
+          <select id="pageSelect" onchange="jumpToPage(this.value)"></select>
+          از <span id="totalPagesSpan">1</span>
+        </span>
         <button class="nav-btn" id="nextBtn" onclick="changePage(1)">بعدی ▶</button>
       </div>
 
@@ -65,8 +70,9 @@
   </div>
 
   <script>
-    let pages = [];
-    let currentIndex = 0;
+    let currentInputUrl = '';
+    let currentPn = 1;
+    let totalPages = 1;
 
     async function initDocument() {
       const input = document.getElementById('urlInput').value.trim();
@@ -79,27 +85,35 @@
         return;
       }
 
+      currentInputUrl = input;
+      currentPn = 1;
+
       fetchBtn.disabled = true;
-      fetchBtn.innerText = 'شناسایی صفحات...';
+      fetchBtn.innerText = 'بررسی سند...';
       statusDiv.innerHTML = '';
       viewerSection.style.display = 'none';
 
       try {
-        const infoUrl = `/.netlify/functions/download?action=info&url=${encodeURIComponent(input)}`;
+        const infoUrl = `/.netlify/functions/download?action=info&url=${encodeURIComponent(currentInputUrl)}&pn=1`;
         const res = await fetch(infoUrl);
         
         if (!res.ok) throw new Error('خطا در دریافت اطلاعات سند');
         
         const data = await res.json();
-        pages = data.pages || [];
-        currentIndex = data.initialIndex || 0;
+        totalPages = data.totalPages || 1;
 
-        if (pages.length === 0) {
-          throw new Error('هیچ صفحه‌ای برای این سند پیدا نشد');
+        const pageSelect = document.getElementById('pageSelect');
+        pageSelect.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = i;
+          pageSelect.appendChild(opt);
         }
+        document.getElementById('totalPagesSpan').innerText = totalPages;
 
         viewerSection.style.display = 'block';
-        loadPage(currentIndex);
+        loadPage(1);
 
       } catch (err) {
         statusDiv.innerHTML = `<p class="error">${err.message}</p>`;
@@ -109,36 +123,36 @@
       }
     }
 
-    function loadPage(index) {
-      if (index < 0 || index >= pages.length) return;
-      
-      currentIndex = index;
-      const pageId = pages[currentIndex];
+    function loadPage(pn) {
+      currentPn = pn;
       
       const imgElem = document.getElementById('docImage');
       const spinner = document.getElementById('loadingSpinner');
-      const pageIndicator = document.getElementById('pageIndicator');
       const downloadLink = document.getElementById('downloadLink');
+      const pageSelect = document.getElementById('pageSelect');
 
-      // آپدیت شماره صفحه
-      pageIndicator.innerText = `صفحه ${currentIndex + 1} از ${pages.length}`;
-      
-      // غیرفعال‌سازی دکمه‌های ناوبری در انتها و ابتدا
-      document.getElementById('prevBtn').disabled = (currentIndex === 0);
-      document.getElementById('nextBtn').disabled = (currentIndex === pages.length - 1);
+      pageSelect.value = currentPn;
+      document.getElementById('prevBtn').disabled = (currentPn <= 1);
+      document.getElementById('nextBtn').disabled = (currentPn >= totalPages);
 
-      // حالت لودینگ
       spinner.style.display = 'block';
       imgElem.style.opacity = '0.3';
 
-      const imageUrl = `/.netlify/functions/download?id=${pageId}`;
+      const imageUrl = `/.netlify/functions/download?url=${encodeURIComponent(currentInputUrl)}&pn=${currentPn}`;
       imgElem.src = imageUrl;
       downloadLink.href = imageUrl;
-      downloadLink.download = `nlai-page-${currentIndex + 1}.jpg`;
+      downloadLink.download = `nlai-page-${currentPn}.jpg`;
     }
 
     function changePage(step) {
-      loadPage(currentIndex + step);
+      const newPn = currentPn + step;
+      if (newPn >= 1 && newPn <= totalPages) {
+        loadPage(newPn);
+      }
+    }
+
+    function jumpToPage(pn) {
+      loadPage(parseInt(pn, 10));
     }
 
     function onImageLoaded() {
@@ -149,7 +163,6 @@
     function onImageError() {
       document.getElementById('loadingSpinner').style.display = 'none';
       document.getElementById('docImage').style.opacity = '1';
-      alert('خطا در بارگذاری تصویر این صفحه');
     }
   </script>
 </body>
