@@ -62,9 +62,16 @@
       margin-bottom: 12px;
     }
 
-    input[type="text"] {
+    .input-wrapper {
+      position: relative;
       flex: 1;
-      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 36px 12px 14px;
       border: 2px solid var(--border);
       border-radius: 8px;
       font-size: 0.95rem;
@@ -76,24 +83,34 @@
       border-color: var(--primary);
     }
 
-    button {
-      color: white;
+    .clear-btn {
+      position: absolute;
+      right: 10px;
+      background: none;
       border: none;
-      padding: 12px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
+      color: #94a3b8;
+      font-size: 1.1rem;
       font-weight: bold;
-      transition: background 0.2s;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      border-radius: 50%;
+      display: none;
+      transition: color 0.2s, background-color 0.2s;
     }
 
-    .btn-primary { background-color: var(--primary); }
-    .btn-primary:hover { background-color: var(--primary-hover); }
+    .clear-btn:hover {
+      color: #ef4444;
+      background-color: #fee2e2;
+    }
 
-    .btn-info { background-color: var(--purple); }
+    button.btn-primary { background-color: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
+    button.btn-primary:hover { background-color: var(--primary-hover); }
+
+    .btn-info { background-color: var(--purple); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
     .btn-info:hover { background-color: var(--purple-hover); }
 
-    .btn-secondary { background-color: var(--emerald); }
+    .btn-secondary { background-color: var(--emerald); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
     .btn-secondary:hover { background-color: var(--emerald-hover); }
 
     button:disabled {
@@ -190,9 +207,12 @@
     <div class="card">
       <h1>نمایشگر اسناد کتابخانه ملی</h1>
 
-      <!-- کادر ورود لینک -->
+      <!-- کادر ورود لینک همراه با دکمه پاک کردن -->
       <div class="input-group">
-        <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا وارد کنید..." />
+        <div class="input-wrapper">
+          <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا پیست کنید..." />
+          <button id="clearBtn" class="clear-btn" title="پاک کردن متن">✕</button>
+        </div>
         <button id="loadBtn" class="btn-primary">نمایش تصویر</button>
       </div>
       <div id="errorMsg" class="error"></div>
@@ -249,7 +269,6 @@
       return `https://dl.nlai.ir/UI/Forms/Compare.aspx?ids=${id}`;
     }
 
-    // تست وجود تصویر در یک شماره صفحه مشخص (کاملاً مستقل از CORS و بدون فیلتر)
     function checkImageExists(id, page) {
       return new Promise((resolve) => {
         const img = new Image();
@@ -276,7 +295,6 @@
       });
     }
 
-    // کشف خودکار تعداد کل صفحات با الگوریتم جستجوی دودویی مستقیم روی تصاویر
     async function autoDetectTotalPages(id) {
       if (isDetecting) return;
       isDetecting = true;
@@ -286,7 +304,6 @@
       totalDisp.innerText = '(در حال شمارش...)';
       statusBadge.innerText = 'در حال محاسبه و شمارش تعداد کل عکس‌های موجود...';
 
-      // ۱. ابتدا تلاش سریع با پروکسی‌های جایگزین
       let foundViaProxy = await tryFetchViaProxies(id);
       if (foundViaProxy) {
         totalPages = foundViaProxy;
@@ -297,16 +314,14 @@
         return;
       }
 
-      // ۲. در صورت مسدود بودن پروکسی، شمارش مستقیم عکس‌ها با جستجوی دودویی
       try {
         let low = 1;
         let high = 1;
 
-        // پیدا کردن بازه بالای صفحات (۱، ۲، ۴، ۸، ۱۶، ۳۲، ۶۴...)
         while (await checkImageExists(id, high)) {
           low = high;
           high *= 2;
-          if (high > 1000) break; // سقف حد بالایی
+          if (high > 1000) break;
         }
 
         if (low === 1 && !(await checkImageExists(id, 1))) {
@@ -316,7 +331,6 @@
           return;
         }
 
-        // جستجوی دقیق آخرین شماره صفحه موجود
         let lastValid = low;
         let start = low;
         let end = high;
@@ -374,7 +388,7 @@
           const match = htmlText.match(/از\s*(\d+)/) || htmlText.match(/تعداد\s*:\s*(\d+)/);
           if (match) return parseInt(match[1]);
         } catch (e) {
-          // پروکسی بعدی تست می‌شود
+          // پروکسی بعدی
         }
       }
       return null;
@@ -387,8 +401,11 @@
 
       const extractedId = extractId(input);
       if (!extractedId) {
-        errorDiv.innerText = 'خطا: شناسه (ID) از لینک وارد شده استخراج نشد. لطفاً آدرس را بررسی کنید.';
-        return;
+        return false;
+      }
+
+      if (extractedId === currentId && document.getElementById('viewerSection').style.display !== 'none') {
+        return true;
       }
 
       currentId = extractedId;
@@ -397,8 +414,8 @@
       updateViewer();
       document.getElementById('viewerSection').style.display = 'block';
 
-      // آغاز فرایند شمارش
       autoDetectTotalPages(currentId);
+      return true;
     }
 
     function changePage(delta) {
@@ -445,14 +462,51 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('loadBtn').addEventListener('click', loadDocument);
+      const urlInput = document.getElementById('urlInput');
+      const clearBtn = document.getElementById('clearBtn');
+
+      function toggleClearBtn() {
+        clearBtn.style.display = urlInput.value.trim() ? 'block' : 'none';
+      }
+
+      function handleAutoLoad() {
+        toggleClearBtn();
+        const val = urlInput.value.trim();
+        if (val) {
+          const id = extractId(val);
+          if (id) {
+            document.getElementById('errorMsg').innerText = '';
+            loadDocument();
+          }
+        }
+      }
+
+      urlInput.addEventListener('input', handleAutoLoad);
+      urlInput.addEventListener('paste', () => {
+        setTimeout(handleAutoLoad, 100);
+      });
+
+      clearBtn.addEventListener('click', () => {
+        urlInput.value = '';
+        clearBtn.style.display = 'none';
+        document.getElementById('errorMsg').innerText = '';
+        urlInput.focus();
+      });
+
+      document.getElementById('loadBtn').addEventListener('click', () => {
+        const success = loadDocument();
+        if (!success) {
+          document.getElementById('errorMsg').innerText = 'خطا: شناسه (ID) از لینک وارد شده استخراج نشد. لطفاً آدرس را بررسی کنید.';
+        }
+      });
+
       document.getElementById('infoBtn').addEventListener('click', openInfoInNewTab);
       document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
       document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
       document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
 
-      document.getElementById('urlInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') loadDocument();
+      urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAutoLoad();
       });
     });
   </script>
