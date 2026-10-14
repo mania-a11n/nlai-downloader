@@ -71,7 +71,7 @@
 
     input[type="text"] {
       width: 100%;
-      padding: 12px 36px 12px 14px;
+      padding: 12px 42px 12px 14px;
       border: 2px solid var(--border);
       border-radius: 8px;
       font-size: 0.95rem;
@@ -83,34 +83,71 @@
       border-color: var(--primary);
     }
 
+    /* دکمه ضربدر پاک کردن لینک */
     .clear-btn {
       position: absolute;
       right: 10px;
-      background: none;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #e2e8f0;
       border: none;
-      color: #94a3b8;
-      font-size: 1.1rem;
+      color: #475569;
+      font-size: 14px;
       font-weight: bold;
-      cursor: pointer;
-      padding: 4px 6px;
-      line-height: 1;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
+      cursor: pointer;
       display: none;
-      transition: color 0.2s, background-color 0.2s;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: all 0.2s;
     }
 
     .clear-btn:hover {
-      color: #ef4444;
-      background-color: #fee2e2;
+      background: #ef4444;
+      color: #ffffff;
     }
 
-    button.btn-primary { background-color: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
+    button.btn-primary {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
     button.btn-primary:hover { background-color: var(--primary-hover); }
 
-    .btn-info { background-color: var(--purple); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
+    .btn-info {
+      background-color: var(--purple);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
     .btn-info:hover { background-color: var(--purple-hover); }
 
-    .btn-secondary { background-color: var(--emerald); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: background 0.2s; }
+    .btn-secondary {
+      background-color: var(--emerald);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
     .btn-secondary:hover { background-color: var(--emerald-hover); }
 
     button:disabled {
@@ -210,8 +247,8 @@
       <!-- کادر ورود لینک همراه با دکمه پاک کردن -->
       <div class="input-group">
         <div class="input-wrapper">
-          <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا پیست کنید..." />
-          <button id="clearBtn" class="clear-btn" title="پاک کردن متن">✕</button>
+          <input type="text" id="urlInput" placeholder="لینک ImageForm را اینجا پیست کنید..." autocomplete="off" />
+          <button id="clearBtn" class="clear-btn" title="پاک کردن لینک">✕</button>
         </div>
         <button id="loadBtn" class="btn-primary">نمایش تصویر</button>
       </div>
@@ -251,14 +288,28 @@
     let totalPages = null;
     let isDetecting = false;
 
+    // استخراج هوشمند ID هم با URLSearchParams و هم با الگوی Regex
     function extractId(url) {
+      if (!url) return null;
+      const str = url.trim();
+      
       try {
-        const urlObj = new URL(url.trim());
+        let validUrlStr = str;
+        if (!validUrlStr.startsWith('http://') && !validUrlStr.startsWith('https://')) {
+          validUrlStr = 'https://' + validUrlStr;
+        }
+        const urlObj = new URL(validUrlStr);
         const params = new URLSearchParams(urlObj.search);
-        return params.get('ID') || params.get('id') || params.get('cid') || params.get('ids');
+        const paramId = params.get('ID') || params.get('id') || params.get('cid') || params.get('ids');
+        if (paramId) return paramId;
       } catch (e) {
-        return null;
+        // ادامه به الگوی هوشمند
       }
+
+      // الگوی استخراج مستقیم کد 36 کاراکتری GUID
+      const guidRegex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/;
+      const match = str.match(guidRegex);
+      return match ? match[0] : null;
     }
 
     function buildImageUrl(id, page) {
@@ -461,35 +512,44 @@
       window.open(infoUrl, '_blank');
     }
 
+    function resetViewer() {
+      currentId = '';
+      currentPage = 1;
+      totalPages = null;
+      document.getElementById('viewerSection').style.display = 'none';
+      document.getElementById('errorMsg').innerText = '';
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const urlInput = document.getElementById('urlInput');
       const clearBtn = document.getElementById('clearBtn');
 
-      function toggleClearBtn() {
-        clearBtn.style.display = urlInput.value.trim() ? 'block' : 'none';
-      }
-
-      function handleAutoLoad() {
-        toggleClearBtn();
+      function updateUI() {
         const val = urlInput.value.trim();
+        clearBtn.style.display = val ? 'flex' : 'none';
+
         if (val) {
           const id = extractId(val);
           if (id) {
             document.getElementById('errorMsg').innerText = '';
             loadDocument();
           }
+        } else {
+          resetViewer();
         }
       }
 
-      urlInput.addEventListener('input', handleAutoLoad);
-      urlInput.addEventListener('paste', () => {
-        setTimeout(handleAutoLoad, 100);
-      });
+      // شنود مستقیم رویدادهای تایپ، پیست و تغییر کادر
+      urlInput.addEventListener('input', updateUI);
+      urlInput.addEventListener('keyup', updateUI);
+      urlInput.addEventListener('change', updateUI);
+      urlInput.addEventListener('paste', () => setTimeout(updateUI, 50));
 
-      clearBtn.addEventListener('click', () => {
+      // عملکرد دکمه پاک کردن (ضربدر)
+      clearBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         urlInput.value = '';
-        clearBtn.style.display = 'none';
-        document.getElementById('errorMsg').innerText = '';
+        updateUI();
         urlInput.focus();
       });
 
@@ -500,16 +560,4 @@
         }
       });
 
-      document.getElementById('infoBtn').addEventListener('click', openInfoInNewTab);
-      document.getElementById('nextBtn').addEventListener('click', () => changePage(1));
-      document.getElementById('prevBtn').addEventListener('click', () => changePage(-1));
-      document.getElementById('openTabBtn').addEventListener('click', openInNewTab);
-
-      urlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleAutoLoad();
-      });
-    });
-  </script>
-
-</body>
-</html>
+      document.getElementById('infoBtn').addEventListener('click',
